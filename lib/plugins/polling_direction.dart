@@ -1,0 +1,3 @@
+enum PollingDirection {
+  UPWARDS, DOWNWARDS
+}
