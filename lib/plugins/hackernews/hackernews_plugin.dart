@@ -3,12 +3,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:thesaurus_omicron/plugins/hackernews/hackernews_news_item_dto.dart';
 import 'package:thesaurus_omicron/plugins/plugin.dart';
 import 'package:thesaurus_omicron/plugins/polled_posts.dart';
 import 'package:thesaurus_omicron/plugins/polling_direction.dart';
+import 'package:thesaurus_omicron/services/web_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HackerNewsPlugin extends Plugin {
@@ -28,6 +28,10 @@ class HackerNewsPlugin extends Plugin {
   static const String _POST_COMMENTS_URL =
       "https://news.ycombinator.com/item?id={postid}";
 
+  final WebClient _webClient;
+
+  const HackerNewsPlugin(this._webClient): super();
+
   @override
   Future<PolledPosts> poll(final int offset, final int limit, final PollingDirection direction) {
     final latest = _loadLatest();
@@ -35,9 +39,10 @@ class HackerNewsPlugin extends Plugin {
   }
 
   Future<PolledPosts> _loadLatest() async {
-    final response = await http.get(_NEW_STORIES);
-    final List<dynamic> posts = json.decode(response.body);
-    final parsedPosts = await Future.wait(posts.map((postId) => _loadPost(postId)));
+    final links = await _webClient
+        .read(_NEW_STORIES, "GET", (body) => { (json.decode(body) as List).map((x) => x as int) })
+        .then((values) => values.first.map((postId) => _POST_URL.replaceAll("{postid}", postId.toString())).toList());
+    final parsedPosts = await _webClient.readMany(links, "GET", (body) => HackerNewsNewsItemDto.fromJson(json.decode(body)));
     final nonNullParsedPosts = parsedPosts.where((x) => x != null).toList();
     return new PolledPosts(
         nonNullParsedPosts.map((item) => item.timestamp).reduce((a, b) => max(a, b)),
@@ -45,16 +50,6 @@ class HackerNewsPlugin extends Plugin {
         nonNullParsedPosts,
         this._generateWidget(nonNullParsedPosts)
     );
-  }
-
-  Future<HackerNewsNewsItemDto> _loadPost(final int postId) async {
-    final response = await http.get(_POST_URL.replaceAll("{postid}", postId.toString()));
-    final decoded = json.decode(response.body);
-    if (decoded == null) {
-      return null;
-    } else {
-      return HackerNewsNewsItemDto.fromJson(decoded);
-    }
   }
 
   WidgetById _generateWidget(final List<HackerNewsNewsItemDto> posts) => (final int postId) {

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:http/http.dart';
 import 'package:thesaurus_omicron/services/web_client.dart';
 
@@ -18,8 +16,8 @@ class StdWebClient implements WebClient {
     final Request request = _prepareRequest(method, url, headers, body);
     return _useWebClient((client) async {
       final response = await client.send(request);
-      final responseJson = _parseResponse(response);
-      return json.decode(responseJson);
+      final responseJson = await _parseResponse(response);
+      return fromJson(responseJson);
     });
   }
 
@@ -36,10 +34,11 @@ class StdWebClient implements WebClient {
     return Future.wait(urls.map((url) => read(url, method, fromJson, headers: headers, body: body)).toList());
   }
 
-  String _parseResponse(final StreamedResponse streamedResponse) {
+  Future<String> _parseResponse(final StreamedResponse streamedResponse) {
     if (streamedResponse.statusCode != 200) {
       throw "Unexpected status code in reponse from server: ${streamedResponse.statusCode}";
     }
+    return streamedResponse.stream.bytesToString();
   }
 
   Request _prepareRequest(final String mthd, final String url, final Map<String, String> headers, final String body) {
