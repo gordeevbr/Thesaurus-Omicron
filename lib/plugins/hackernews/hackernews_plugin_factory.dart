@@ -10,7 +10,7 @@ class HackerNewsPluginFactory extends PluginFactory {
 
   final WebClient _webClient;
 
-  const HackerNewsPluginFactory(this._webClient);
+  HackerNewsPluginFactory(this._webClient);
 
   @override
   PluginAuth get authentication => new NoAuth();

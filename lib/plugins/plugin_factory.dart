@@ -7,15 +7,6 @@ import 'package:thesaurus_omicron/services/web_client.dart';
 
 abstract class PluginFactory {
 
-  static final WebClient _webClient = new StdWebClient();
-
-  const PluginFactory();
-
-  static List<PluginFactory> getAll() {
-    // Without any reflection or DI libraries, I have to do this explicitly
-    return [new HackerNewsPluginFactory(_webClient)];
-  }
-
   PluginAuth get authentication;
 
   Map<String, PluginParameter> get parameters;

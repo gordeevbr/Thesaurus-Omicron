@@ -1,19 +1,18 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility that Flutter provides. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:thesaurus_omicron/plugins/plugin_manager.dart';
 
-import 'package:thesaurus_omicron/main.dart';
+import 'package:thesaurus_omicron/thesaurus_app.dart';
+
+class _PluginManagerMock extends Mock implements PluginManager {}
 
 void main() {
   testWidgets('By default, an empty ListView is present in the container', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+    final pluginManager = _PluginManagerMock();
+
+    await tester.pumpWidget(ThesaurusApp(pluginManager));
 
     expect(find.byType(ListView), findsOneWidget);
     expect(find.descendant(of: find.byType(ListView), matching: find.byType(Card)), findsNothing);
