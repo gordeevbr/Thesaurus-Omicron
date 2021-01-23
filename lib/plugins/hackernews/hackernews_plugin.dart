@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -10,6 +11,21 @@ import 'package:thesaurus_omicron/plugins/polled_posts.dart';
 import 'package:thesaurus_omicron/plugins/polling_direction.dart';
 import 'package:thesaurus_omicron/services/web_client.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class _TupleOfItemWithCount<T> {
+
+  _TupleOfItemWithCount(this._item, this._count);
+
+  final T _item;
+
+  final int _count;
+
+  T get item => _item;
+
+  int get count => _count;
+}
+
+typedef PostsReducer = Function(_TupleOfItemWithCount<HackerNewsNewsItemDto>, EventSink);
 
 class HackerNewsPlugin extends Plugin {
 
@@ -33,23 +49,39 @@ class HackerNewsPlugin extends Plugin {
   const HackerNewsPlugin(this._webClient): super();
 
   @override
-  Future<PolledPosts> poll(final int offset, final int limit, final PollingDirection direction) {
-    final latest = _loadLatest();
-    return latest;
+  Stream<PolledPosts> poll(final int offset, final int limit, final PollingDirection direction) {
+    return _loadLatest();
   }
 
-  Future<PolledPosts> _loadLatest() async {
-    final links = await _webClient
+  Stream<PolledPosts> _loadLatest() {
+    return _webClient
         .read(_NEW_STORIES, "GET", (body) => { (json.decode(body) as List).map((x) => x as int) })
-        .then((values) => values.first.map((postId) => _POST_URL.replaceAll("{postid}", postId.toString())).toList());
-    final parsedPosts = await _webClient.readMany(links, "GET", (body) => HackerNewsNewsItemDto.fromJson(json.decode(body)));
-    final nonNullParsedPosts = parsedPosts.where((x) => x != null).toList();
-    return new PolledPosts(
-        nonNullParsedPosts.map((item) => item.timestamp).reduce((a, b) => max(a, b)),
-        nonNullParsedPosts.map((item) => item.timestamp).reduce((a, b) => min(a, b)),
-        nonNullParsedPosts,
-        this._generateWidget(nonNullParsedPosts)
-    );
+        .then((values) => values.first.map((postId) => _POST_URL.replaceAll("{postid}", postId.toString())).toList())
+        .asStream()
+        .expand((values) =>
+          _webClient.readMany(values, "GET", (body) => HackerNewsNewsItemDto.fromJson(json.decode(body)))
+              .map((post) => _TupleOfItemWithCount(post, values.length))
+        )
+        .asyncMap((post) => post.item.then((resolvedPost) => _TupleOfItemWithCount(resolvedPost, post.count)))
+        .where((post) => post._item != null)
+        .transform(StreamTransformer.fromHandlers(handleData: _getPostsReducer()));
+  }
+
+  _getPostsReducer() {
+    final buffer = List<HackerNewsNewsItemDto>();
+    return (final _TupleOfItemWithCount<HackerNewsNewsItemDto> post, EventSink sink) {
+      buffer.add(post._item);
+      final copy = List<HackerNewsNewsItemDto>.from(buffer);
+      sink.add(
+          PolledPosts(
+            copy.map((item) => item.timestamp).reduce((a, b) => max(a, b)),
+            copy.map((item) => item.timestamp).reduce((a, b) => min(a, b)),
+            copy,
+            this._generateWidget(copy),
+            post._count
+          )
+      );
+    };
   }
 
   WidgetById _generateWidget(final List<HackerNewsNewsItemDto> posts) => (final int postId) {

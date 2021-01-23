@@ -5,7 +5,7 @@ typedef WidgetById = Widget Function(int);
 
 class PolledPosts {
 
-  PolledPosts(this._upperOffset, this._lowerOffset, this._posts, this._renderer);
+  PolledPosts(this._upperOffset, this._lowerOffset, this._posts, this._renderer, this._expectedTotalCount);
 
   final int _upperOffset;
 
@@ -15,6 +15,8 @@ class PolledPosts {
 
   final WidgetById _renderer;
 
+  final int _expectedTotalCount;
+
   int get upperOffset => _upperOffset;
 
   int get lowerOffset => _lowerOffset;
@@ -23,4 +25,5 @@ class PolledPosts {
 
   WidgetById get renderer => _renderer;
 
+  int get expectedTotalCount => _expectedTotalCount;
 }

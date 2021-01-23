@@ -5,6 +5,6 @@ abstract class Plugin {
 
   const Plugin();
 
-  Future<PolledPosts> poll(final int offset, final int limit, final PollingDirection direction);
+  Stream<PolledPosts> poll(final int offset, final int limit, final PollingDirection direction);
 
 }

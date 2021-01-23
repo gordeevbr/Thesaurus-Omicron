@@ -9,7 +9,6 @@ class _PluginManagerMock extends Mock implements PluginManager {}
 
 void main() {
   testWidgets('By default, an empty ListView is present in the container', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
     final pluginManager = _PluginManagerMock();
 
     await tester.pumpWidget(ThesaurusApp(pluginManager));

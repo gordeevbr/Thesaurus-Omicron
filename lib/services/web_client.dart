@@ -10,7 +10,7 @@ abstract class WebClient {
       }
   );
 
-  Future<List<T>> readMany<T>(
+  Iterable<Future<T>> readMany<T>(
       final List<String> urls,
       final String method,
       final T Function(dynamic) fromJson,

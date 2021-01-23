@@ -22,7 +22,7 @@ class StdWebClient implements WebClient {
   }
 
   @override
-  Future<List<T>> readMany<T>(
+  Iterable<Future<T>> readMany<T>(
       final List<String> urls,
       final String method,
       final T Function(dynamic) fromJson,
@@ -31,7 +31,7 @@ class StdWebClient implements WebClient {
         final String body
       }
   ) {
-    return Future.wait(urls.map((url) => read(url, method, fromJson, headers: headers, body: body)).toList());
+    return urls.map((url) => read(url, method, fromJson, headers: headers, body: body));
   }
 
   Future<String> _parseResponse(final StreamedResponse streamedResponse) {
