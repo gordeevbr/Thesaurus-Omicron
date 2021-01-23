@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:stream_transform/stream_transform.dart';
 import 'package:thesaurus_omicron/plugins/hackernews/hackernews_news_item_dto.dart';
 import 'package:thesaurus_omicron/plugins/plugin.dart';
 import 'package:thesaurus_omicron/plugins/polled_posts.dart';
@@ -64,24 +65,17 @@ class HackerNewsPlugin extends Plugin {
         )
         .asyncMap((post) => post.item.then((resolvedPost) => _TupleOfItemWithCount(resolvedPost, post.count)))
         .where((post) => post._item != null)
-        .transform(StreamTransformer.fromHandlers(handleData: _getPostsReducer()));
-  }
-
-  _getPostsReducer() {
-    final buffer = List<HackerNewsNewsItemDto>();
-    return (final _TupleOfItemWithCount<HackerNewsNewsItemDto> post, EventSink sink) {
-      buffer.add(post._item);
-      final copy = List<HackerNewsNewsItemDto>.from(buffer);
-      sink.add(
-          PolledPosts(
-            copy.map((item) => item.timestamp).reduce((a, b) => max(a, b)),
-            copy.map((item) => item.timestamp).reduce((a, b) => min(a, b)),
-            copy,
-            this._generateWidget(copy),
-            post._count
-          )
-      );
-    };
+        .scan(PolledPosts(0, 0, List(), (id) => null, 0), (soFar, element) {
+          final copy = List<HackerNewsNewsItemDto>.from(soFar.posts);
+          copy.add(element.item);
+          return PolledPosts(
+              copy.map((item) => item.timestamp).reduce((a, b) => max(a, b)),
+              copy.map((item) => item.timestamp).reduce((a, b) => min(a, b)),
+              copy,
+              this._generateWidget(copy),
+              element._count
+          );
+        });
   }
 
   WidgetById _generateWidget(final List<HackerNewsNewsItemDto> posts) => (final int postId) {
