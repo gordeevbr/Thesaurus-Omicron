@@ -18,12 +18,9 @@ class _HomeState extends State<Home> {
 
   Stream<PolledPosts> _stream;
 
-  PolledPosts _posts = PolledPosts(0, 0, List(), (id) => null, 0);
-
   Future<void> _refresh() {
     setState(() {
-      this._stream = widget._pluginManager.factories.first.construct(new Map())
-          .poll(0, 50, PollingDirection.UPWARDS);
+      this._stream = widget._pluginManager.getGatewayPlugin().poll(0, 50, PollingDirection.UPWARDS);
     });
     return Future.value(null);
   }
@@ -68,24 +65,24 @@ class _HomeState extends State<Home> {
           }
 
           if (snapshot.connectionState == ConnectionState.done) {
-            this._posts = snapshot.data;
+            return _renderBody(snapshot.data);
           }
 
-          return _renderBody();
+          return _renderBody(PolledPosts(0, 0, List(), (id) => null, 0));
         }
     );
   }
 
-  Widget _renderBody() {
+  Widget _renderBody(final PolledPosts result) {
     return ListView(
       padding: const EdgeInsets.all(8),
-      children: _posts.posts.map((post) => Card(
+      children: result.posts.map((post) => Card(
           margin: EdgeInsets.symmetric(vertical: 3, horizontal: 2),
           shape: Border.all(),
           elevation: 1,
           child: Container(
               padding: EdgeInsets.all(2),
-              child: Function.apply(_posts.renderer, [post.batchId])
+              child: Function.apply(result.renderer, [post.batchId])
           )
       )).toList(),
       physics: AlwaysScrollableScrollPhysics(),
